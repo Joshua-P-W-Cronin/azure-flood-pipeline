@@ -1,0 +1,13 @@
+{
+	"name": "ls_ea_api",
+	"properties": {
+		"description": "Connection to flood monitoring API",
+		"annotations": [],
+		"type": "HttpServer",
+		"typeProperties": {
+			"url": "https://environment.data.gov.uk/flood-monitoring/",
+			"enableServerCertificateValidation": true,
+			"authenticationType": "Anonymous"
+		}
+	}
+}
