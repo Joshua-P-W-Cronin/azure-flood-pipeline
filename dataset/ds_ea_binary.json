@@ -16,7 +16,10 @@
 		"typeProperties": {
 			"location": {
 				"type": "HttpServerLocation",
-				"relativeUrl": "id/stations"
+				"relativeUrl": {
+					"value": "@dataset().relativeUrl",
+					"type": "Expression"
+				}
 			}
 		}
 	}
