@@ -1,0 +1,22 @@
+{
+	"name": "ds_ea_binary",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_ea_api",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"relativeUrl": {
+				"type": "string",
+				"defaultValue": "@dataset().relativeUrl "
+			}
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "HttpServerLocation"
+			}
+		}
+	}
+}

@@ -1,0 +1,30 @@
+{
+	"name": "ds_lake_binary",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_adls",
+			"type": "LinkedServiceReference"
+		},
+		"parameters": {
+			"container": {
+				"type": "string",
+				"defaultValue": "@dataset().container"
+			},
+			"folderPath": {
+				"type": "string",
+				"defaultValue": "@dataset().folderPath"
+			},
+			"fileName": {
+				"type": "string",
+				"defaultValue": "@dataset().fileName"
+			}
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation"
+			}
+		}
+	}
+}
