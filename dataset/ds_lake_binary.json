@@ -23,7 +23,10 @@
 		"type": "Binary",
 		"typeProperties": {
 			"location": {
-				"type": "AzureBlobFSLocation"
+				"type": "AzureBlobFSLocation",
+				"fileName": "test.json",
+				"folderPath": "test",
+				"fileSystem": "raw"
 			}
 		}
 	}
