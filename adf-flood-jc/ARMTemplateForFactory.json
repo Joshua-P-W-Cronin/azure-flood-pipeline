@@ -346,6 +346,106 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/pipelines/pl_ingest_readings')]"
 			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_backfill_archive')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "7 day readings backfill\n",
+				"activities": [
+					{
+						"name": "foreach_day",
+						"type": "ForEach",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@range(2,pipeline().parameters.days)",
+								"type": "Expression"
+							},
+							"batchCount": 4,
+							"activities": [
+								{
+									"name": "copy_archive_day",
+									"type": "Copy",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 2,
+										"retryIntervalInSeconds": 58,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"source": {
+											"type": "BinarySource",
+											"storeSettings": {
+												"type": "HttpReadSettings",
+												"requestMethod": "GET"
+											},
+											"formatSettings": {
+												"type": "BinaryReadSettings"
+											}
+										},
+										"sink": {
+											"type": "BinarySink",
+											"storeSettings": {
+												"type": "AzureBlobFSWriteSettings"
+											}
+										},
+										"enableStaging": false
+									},
+									"inputs": [
+										{
+											"referenceName": "ds_ea_binary",
+											"type": "DatasetReference",
+											"parameters": {
+												"relativeUrl": {
+													"value": "@concat('archive/readings-', addDays(pipeline().TriggerTime, mul(-1, item()), 'yyyy-MM-dd'), '.csv')",
+													"type": "Expression"
+												}
+											}
+										}
+									],
+									"outputs": [
+										{
+											"referenceName": "ds_lake_binary",
+											"type": "DatasetReference",
+											"parameters": {
+												"container": "raw",
+												"folderPath": {
+													"value": "@concat('readings_archive/date=', addDays(pipeline().TriggerTime, mul(-1, item()), 'yyyy-MM-dd'))",
+													"type": "Expression"
+												},
+												"fileName": {
+													"value": "@concat('readings-', addDays(pipeline().TriggerTime, mul(-1, item()), 'yyyy-MM-dd'), '.csv')",
+													"type": "Expression"
+												}
+											}
+										}
+									]
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"days": {
+						"type": "int",
+						"defaultValue": 7
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_ea_binary')]",
+				"[concat(variables('factoryId'), '/datasets/ds_lake_binary')]"
+			]
 		}
 	]
 }
