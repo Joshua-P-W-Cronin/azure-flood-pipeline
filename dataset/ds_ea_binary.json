@@ -8,14 +8,15 @@
 		"parameters": {
 			"relativeUrl": {
 				"type": "string",
-				"defaultValue": "@dataset().relativeUrl "
+				"defaultValue": "@dataset().relativeUrl"
 			}
 		},
 		"annotations": [],
 		"type": "Binary",
 		"typeProperties": {
 			"location": {
-				"type": "HttpServerLocation"
+				"type": "HttpServerLocation",
+				"relativeUrl": "id/stations"
 			}
 		}
 	}
