@@ -1,0 +1,25 @@
+{
+	"name": "tr_hourly",
+	"properties": {
+		"description": "Hourly run trigger to copy latest readings from API into data lake",
+		"annotations": [],
+		"runtimeState": "Started",
+		"pipelines": [
+			{
+				"pipelineReference": {
+					"referenceName": "pl_ingest_readings",
+					"type": "PipelineReference"
+				}
+			}
+		],
+		"type": "ScheduleTrigger",
+		"typeProperties": {
+			"recurrence": {
+				"frequency": "Hour",
+				"interval": 1,
+				"startTime": "2026-11-14T17:00:00",
+				"timeZone": "GMT Standard Time"
+			}
+		}
+	}
+}

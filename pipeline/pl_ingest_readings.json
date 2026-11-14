@@ -1,0 +1,67 @@
+{
+	"name": "pl_ingest_readings",
+	"properties": {
+		"activities": [
+			{
+				"name": "copy_readings",
+				"description": "copy the latest readings json from environment monitoring. Run every hour",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 2,
+					"retryIntervalInSeconds": 60,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "BinarySource",
+						"storeSettings": {
+							"type": "HttpReadSettings",
+							"requestMethod": "GET"
+						},
+						"formatSettings": {
+							"type": "BinaryReadSettings"
+						}
+					},
+					"sink": {
+						"type": "BinarySink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_ea_binary",
+						"type": "DatasetReference",
+						"parameters": {
+							"relativeUrl": "data/readings?latest"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_lake_binary",
+						"type": "DatasetReference",
+						"parameters": {
+							"container": "raw",
+							"folderPath": {
+								"value": "@concat('readings/load_date=', formatDateTime(pipeline().TriggerTime, 'yyyy-MM-dd'))",
+								"type": "Expression"
+							},
+							"fileName": {
+								"value": "@concat('readings_', formatDateTime(pipeline().TriggerTime, 'HHmm'), '.json')",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			}
+		],
+		"annotations": []
+	}
+}
