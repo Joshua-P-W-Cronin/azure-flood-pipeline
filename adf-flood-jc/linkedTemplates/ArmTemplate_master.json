@@ -11,10 +11,6 @@
 			"type": "string",
 			"defaultValue": "https://stfloodpipelinejc.dfs.core.windows.net/"
 		},
-		"ls_ea_api_properties_typeProperties_url": {
-			"type": "string",
-			"defaultValue": "https://environment.data.gov.uk/flood-monitoring/"
-		},
 		"ls_azuresql_properties_typeProperties_server": {
 			"type": "string",
 			"defaultValue": "sql-flood-jc.database.windows.net"
@@ -22,6 +18,10 @@
 		"ls_azuresql_properties_typeProperties_database": {
 			"type": "string",
 			"defaultValue": "sqldb-flood"
+		},
+		"ls_ea_api_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://environment.data.gov.uk/flood-monitoring/"
 		},
 		"containerUri": {
 			"type": "string",
@@ -53,14 +53,14 @@
 					"ls_adls_properties_typeProperties_url": {
 						"value": "[parameters('ls_adls_properties_typeProperties_url')]"
 					},
-					"ls_ea_api_properties_typeProperties_url": {
-						"value": "[parameters('ls_ea_api_properties_typeProperties_url')]"
-					},
 					"ls_azuresql_properties_typeProperties_server": {
 						"value": "[parameters('ls_azuresql_properties_typeProperties_server')]"
 					},
 					"ls_azuresql_properties_typeProperties_database": {
 						"value": "[parameters('ls_azuresql_properties_typeProperties_database')]"
+					},
+					"ls_ea_api_properties_typeProperties_url": {
+						"value": "[parameters('ls_ea_api_properties_typeProperties_url')]"
 					}
 				}
 			},

@@ -8,14 +8,14 @@
 		"ls_adls_properties_typeProperties_url": {
 			"value": "https://stfloodpipelinejc.dfs.core.windows.net/"
 		},
-		"ls_ea_api_properties_typeProperties_url": {
-			"value": "https://environment.data.gov.uk/flood-monitoring/"
-		},
 		"ls_azuresql_properties_typeProperties_server": {
 			"value": "sql-flood-jc.database.windows.net"
 		},
 		"ls_azuresql_properties_typeProperties_database": {
 			"value": "sqldb-flood"
+		},
+		"ls_ea_api_properties_typeProperties_url": {
+			"value": "https://environment.data.gov.uk/flood-monitoring/"
 		},
 		"containerUri": {
 			"value": ""
