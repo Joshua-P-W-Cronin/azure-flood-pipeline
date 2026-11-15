@@ -49,3 +49,23 @@ BEGIN
     CREATE NONCLUSTERED INDEX IX_dim_measure_station ON dw.dim_measure (station_key);
 END;
 GO
+
+IF OBJECT_ID(N'dw.dim_flood_area', N'U') IS NULL
+BEGIN
+    CREATE TABLE dw.dim_flood_area (
+        flood_area_key  int IDENTITY(1,1) NOT NULL,
+        area_code       nvarchar(50)   NOT NULL,   -- API 'notation'
+        label           nvarchar(400)  NULL,
+        description     nvarchar(2000) NULL,
+        county          nvarchar(400)  NULL,
+        river_or_sea    nvarchar(400)  NULL,
+        ea_area_name    nvarchar(200)  NULL,
+        polygon_url     nvarchar(400)  NULL,
+        boundary        geography      NULL,
+        created_at_utc  datetime2(0)   NOT NULL CONSTRAINT DF_dim_flood_area_created DEFAULT SYSUTCDATETIME(),
+        updated_at_utc  datetime2(0)   NOT NULL CONSTRAINT DF_dim_flood_area_updated DEFAULT SYSUTCDATETIME(),
+        CONSTRAINT PK_dim_flood_area PRIMARY KEY CLUSTERED (flood_area_key),
+        CONSTRAINT UQ_dim_flood_area_code UNIQUE (area_code)
+    );
+END;
+GO
