@@ -19,6 +19,23 @@ CREATE TABLE stg.stations(
 )
 ;
 
+DROP TABLE IF EXISTS stg.measures;
+
+CREATE TABLE stg.measures(
+    measure_uri         nvarchar(300) NULL,   -- @id
+    station_reference   nvarchar(50)  NULL,
+    label               nvarchar(400) NULL,
+    parameter           nvarchar(50) NULL,
+    parameter_name      nvarchar(200) NULL,
+    qualifier           nvarchar(100) NULL,
+    period_seconds      nvarchar(20),
+    unit_name           nvarchar(50),
+    value_type          nvarchar(50),
+    source_file         nvarchar(400),
+    loaded_at_utc       datetime2(0)  NOT NULL DEFAULT SYSUTCDATETIME()
+)
+;
+
 DROP TABLE IF EXISTS stg.readings;
 
 CREATE TABLE stg.readings(
@@ -27,3 +44,4 @@ CREATE TABLE stg.readings(
     reading_value float                 NULL,
     loaded_at_utc datetime2(0)  NOT NULL DEFAULT SYSUTCDATETIME()
 );
+
