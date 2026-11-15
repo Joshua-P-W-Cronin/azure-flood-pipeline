@@ -153,6 +153,114 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/ds_lake_json')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"container": {
+						"type": "string"
+					},
+					"fileName": {
+						"type": "string"
+					},
+					"folderPath": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "@dataset().fileName",
+						"folderPath": "@dataset().folderPath",
+						"fileSystem": {
+							"value": "@dataset().container",
+							"type": "Expression"
+						}
+					}
+				},
+				"schema": {}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_lake_csv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"container": {
+						"type": "string"
+					},
+					"fileName": {
+						"type": "string"
+					},
+					"folderPath": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "@dataset().fileName",
+						"folderPath": "@dataset().folderPath",
+						"fileSystem": "@dataset().container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_sql_table')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_azuresql",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"schemaName": {
+						"type": "string"
+					},
+					"tableName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "@dataset().schemaName",
+					"table": "@dataset().tableName"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_azuresql')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/pl_backfill_archive')]",
 			"type": "Microsoft.DataFactory/factories/pipelines",
 			"apiVersion": "2018-06-01",
@@ -455,6 +563,872 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/ds_ea_binary')]",
 				"[concat(variables('factoryId'), '/datasets/ds_lake_binary')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pl_load_sql')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "set_load_date",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "v_date",
+							"value": "@if(empty(pipeline().parameters.load_date), formatDateTime(pipeline().TriggerTime, 'yyyy-MM-dd'), pipeline().parameters.load_date)"
+						}
+					},
+					{
+						"name": "copy_stg_stations",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "set_load_date",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"additionalColumns": [
+									{
+										"name": "source_file",
+										"value": "$$FILEPATH"
+									}
+								],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": "TRUNCATE TABLE stg.stations",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "[['@id']"
+										},
+										"sink": {
+											"name": "station_uri",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['catchmentName']"
+										},
+										"sink": {
+											"name": "catchment_name",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['easting']"
+										},
+										"sink": {
+											"name": "easting",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['label']"
+										},
+										"sink": {
+											"name": "label",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['lat']"
+										},
+										"sink": {
+											"name": "latitude",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['long']"
+										},
+										"sink": {
+											"name": "longitude",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['northing']"
+										},
+										"sink": {
+											"name": "northing",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['riverName']"
+										},
+										"sink": {
+											"name": "river_name",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['stageScale']['typicalRangeHigh']"
+										},
+										"sink": {
+											"name": "typical_range_high",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "[['stageScale']['typicalRangeLow']"
+										},
+										"sink": {
+											"name": "typical_range_low",
+											"type": "Double"
+										}
+									},
+									{
+										"source": {
+											"path": "[['stationReference']"
+										},
+										"sink": {
+											"name": "station_reference",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['status']"
+										},
+										"sink": {
+											"name": "status",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['town']"
+										},
+										"sink": {
+											"name": "town",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['source_file']"
+										},
+										"sink": {
+											"name": "source_file",
+											"type": "String"
+										}
+									}
+								],
+								"collectionReference": "$['items']",
+								"mapComplexValuesToString": true
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_lake_json",
+								"type": "DatasetReference",
+								"parameters": {
+									"container": "raw",
+									"fileName": "stations.json",
+									"folderPath": "@concat('stations/load_date=', variables('v_date'))"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_sql_table",
+								"type": "DatasetReference",
+								"parameters": {
+									"schemaName": "stg",
+									"tableName": "stations"
+								}
+							}
+						]
+					},
+					{
+						"name": "copy_stg_measures",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "set_load_date",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"additionalColumns": [
+									{
+										"name": "source_file",
+										"value": "$$FILEPATH"
+									}
+								],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": "TRUNCATE TABLE stg.measures",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "[['@id']"
+										},
+										"sink": {
+											"name": "measure_uri",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['label']"
+										},
+										"sink": {
+											"name": "label",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['parameter']"
+										},
+										"sink": {
+											"name": "parameter",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['parameterName']"
+										},
+										"sink": {
+											"name": "parameter_name",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['period']"
+										},
+										"sink": {
+											"name": "period_seconds",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['qualifier']"
+										},
+										"sink": {
+											"name": "qualifier",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['stationReference']"
+										},
+										"sink": {
+											"name": "station_reference",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['unitName']"
+										},
+										"sink": {
+											"name": "unit_name",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['valueType']"
+										},
+										"sink": {
+											"name": "value_type",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['source_file']"
+										},
+										"sink": {
+											"name": "source_file",
+											"type": "String"
+										}
+									}
+								],
+								"collectionReference": "$['items']"
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_lake_json",
+								"type": "DatasetReference",
+								"parameters": {
+									"container": "raw",
+									"fileName": "measures.json",
+									"folderPath": {
+										"value": "@concat('measures/load_date=', variables('v_date'))",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_sql_table",
+								"type": "DatasetReference",
+								"parameters": {
+									"schemaName": "stg",
+									"tableName": "measures"
+								}
+							}
+						]
+					},
+					{
+						"name": "copy_stg_readings_hourly",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "set_load_date",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"additionalColumns": [
+									{
+										"name": "source_file",
+										"value": "$$FILEPATH"
+									}
+								],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"wildcardFolderPath": "@concat('readings/load_date=', variables('v_date'))",
+									"wildcardFileName": "*.json",
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"preCopyScript": "TRUNCATE TABLE stg.readings",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false,
+								"disableMetricsCollection": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"path": "[['dateTime']"
+										},
+										"sink": {
+											"name": "date_time",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['measure']"
+										},
+										"sink": {
+											"name": "measure",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "[['value']"
+										},
+										"sink": {
+											"name": "value",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"path": "$['source_file']"
+										},
+										"sink": {
+											"name": "source_file",
+											"type": "String"
+										}
+									}
+								],
+								"collectionReference": "$['items']"
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_lake_json",
+								"type": "DatasetReference",
+								"parameters": {
+									"container": "raw",
+									"fileName": "*.json",
+									"folderPath": "@concat('readings/load_date=', variables('v_date'))"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_sql_table",
+								"type": "DatasetReference",
+								"parameters": {
+									"schemaName": "stg",
+									"tableName": "readings"
+								}
+							}
+						]
+					},
+					{
+						"name": "copy_stg_readings_archive",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "copy_stg_readings_hourly",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"additionalColumns": [
+									{
+										"name": "source_file",
+										"value": "$$FILEPATH"
+									}
+								],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"wildcardFolderPath": "readings_archive/*",
+									"wildcardFileName": "*.csv",
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "dateTime",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "date_time",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "measure",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "measure",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "value",
+											"type": "String",
+											"physicalType": "String"
+										},
+										"sink": {
+											"name": "value",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									},
+									{
+										"source": {
+											"name": "source_file",
+											"type": "String"
+										},
+										"sink": {
+											"name": "source_file",
+											"type": "String",
+											"physicalType": "nvarchar"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_lake_csv",
+								"type": "DatasetReference",
+								"parameters": {
+									"container": "raw",
+									"fileName": "*.csv",
+									"folderPath": "readings_archive"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_sql_table",
+								"type": "DatasetReference",
+								"parameters": {
+									"schemaName": "stg",
+									"tableName": "readings"
+								}
+							}
+						]
+					},
+					{
+						"name": "merge_dim_station",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "copy_stg_stations",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "copy_stg_measures",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dw].[usp_merge_dim_station]",
+							"storedProcedureParameters": {
+								"run_id": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_azuresql",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "merge_dim_measure",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "merge_dim_station",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dw].[usp_merge_dim_measure]",
+							"storedProcedureParameters": {
+								"run_id": {
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_azuresql",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "merge_fact_reading",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "copy_stg_readings_archive",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "merge_dim_measure",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dw].[usp_merge_fact_reading]",
+							"storedProcedureParameters": {
+								"run_id": {
+									"value": "@pipeline().RunId",
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_azuresql",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "log_failure",
+						"type": "SqlServerStoredProcedure",
+						"dependsOn": [
+							{
+								"activity": "merge_fact_reading",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"storedProcedureName": "[[dw].[usp_log_failure]",
+							"storedProcedureParameters": {
+								"error_message": {
+									"value": {
+										"value": "@activity('merge_fact_reading').error.message",
+										"type": "Expression"
+									},
+									"type": "String"
+								},
+								"run_id": {
+									"value": "@pipeline().RunId",
+									"type": "String"
+								},
+								"step": {
+									"value": "merge_fact_reading",
+									"type": "String"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "ls_azuresql",
+							"type": "LinkedServiceReference"
+						}
+					},
+					{
+						"name": "fail_run",
+						"type": "Fail",
+						"dependsOn": [
+							{
+								"activity": "log_failure",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"message": "@concat('merge_fact_reading failed: ', activity('merge_fact_reading').error.message)",
+							"errorCode": "LOAD_FAILED"
+						}
+					},
+					{
+						"name": "get_load_log",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "merge_fact_reading",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "SELECT step, rows_inserted, rows_updated, rows_rejected FROM dw.load_log WHERE run_id = '@{pipeline().RunId}' ORDER BY log_id",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "ds_sql_table",
+								"type": "DatasetReference",
+								"parameters": {
+									"schemaName": "dw",
+									"tableName": "load_log"
+								}
+							},
+							"firstRowOnly": false
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"load_date": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"v_date": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/ds_lake_json')]",
+				"[concat(variables('factoryId'), '/datasets/ds_sql_table')]",
+				"[concat(variables('factoryId'), '/datasets/ds_lake_csv')]",
+				"[concat(variables('factoryId'), '/linkedServices/ls_azuresql')]"
 			]
 		},
 		{
