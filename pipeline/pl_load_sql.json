@@ -1,0 +1,100 @@
+{
+	"name": "pl_load_sql",
+	"properties": {
+		"activities": [
+			{
+				"name": "set_load_date",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "v_date",
+					"value": "@if(empty(pipeline().parameters.load_date), formatDateTime(pipeline().TriggerTime, 'yyyy-MM-dd'), pipeline().parameters.load_date)"
+				}
+			},
+			{
+				"name": "copy_stg_stations",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "set_load_date",
+						"dependencyConditions": [
+							"Completed"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"additionalColumns": [
+							{
+								"name": "source_file",
+								"value": "$$FILEPATH"
+							}
+						],
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"sink": {
+						"type": "AzureSqlSink",
+						"preCopyScript": "TRUNCATE TABLE stg.stations",
+						"writeBehavior": "insert",
+						"sqlWriterUseTableLock": false,
+						"disableMetricsCollection": false
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_lake_json",
+						"type": "DatasetReference",
+						"parameters": {
+							"container": "raw",
+							"fileName": "stations.json",
+							"folderPath": "@concat('stations/load_date=', variables('v_date'))"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_sql_table",
+						"type": "DatasetReference",
+						"parameters": {
+							"schemaName": "stg",
+							"tableName": "stations"
+						}
+					}
+				]
+			}
+		],
+		"parameters": {
+			"load_date": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"v_date": {
+				"type": "String"
+			}
+		},
+		"annotations": []
+	}
+}
