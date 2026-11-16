@@ -153,45 +153,6 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/ds_lake_json')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"linkedServiceName": {
-					"referenceName": "ls_adls",
-					"type": "LinkedServiceReference"
-				},
-				"parameters": {
-					"container": {
-						"type": "string"
-					},
-					"fileName": {
-						"type": "string"
-					},
-					"folderPath": {
-						"type": "string"
-					}
-				},
-				"annotations": [],
-				"type": "Json",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"fileName": "@dataset().fileName",
-						"folderPath": "@dataset().folderPath",
-						"fileSystem": {
-							"value": "@dataset().container",
-							"type": "Expression"
-						}
-					}
-				},
-				"schema": {}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/ls_adls')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/ds_lake_csv')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -216,9 +177,18 @@
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "@dataset().fileName",
-						"folderPath": "@dataset().folderPath",
-						"fileSystem": "@dataset().container"
+						"fileName": {
+							"value": "@dataset().fileName",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().folderPath",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().container",
+							"type": "Expression"
+						}
 					},
 					"columnDelimiter": ",",
 					"escapeChar": "\\",
@@ -226,6 +196,51 @@
 					"quoteChar": "\""
 				},
 				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/ls_adls')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ds_lake_json')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "ls_adls",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"container": {
+						"type": "string"
+					},
+					"fileName": {
+						"type": "string"
+					},
+					"folderPath": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().fileName",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().folderPath",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().container",
+							"type": "Expression"
+						}
+					}
+				},
+				"schema": {}
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/ls_adls')]"
@@ -252,8 +267,14 @@
 				"type": "AzureSqlTable",
 				"schema": [],
 				"typeProperties": {
-					"schema": "@dataset().schemaName",
-					"table": "@dataset().tableName"
+					"schema": {
+						"value": "@dataset().schemaName",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().tableName",
+						"type": "Expression"
+					}
 				}
 			},
 			"dependsOn": [
@@ -582,7 +603,10 @@
 						"userProperties": [],
 						"typeProperties": {
 							"variableName": "v_date",
-							"value": "@if(empty(pipeline().parameters.load_date), formatDateTime(pipeline().TriggerTime, 'yyyy-MM-dd'), pipeline().parameters.load_date)"
+							"value": {
+								"value": "@if(empty(pipeline().parameters.load_date), formatDateTime(pipeline().TriggerTime, 'yyyy-MM-dd'), pipeline().parameters.load_date)",
+								"type": "Expression"
+							}
 						}
 					},
 					{
@@ -760,8 +784,7 @@
 										}
 									}
 								],
-								"collectionReference": "$['items']",
-								"mapComplexValuesToString": true
+								"collectionReference": "$['items']"
 							}
 						},
 						"inputs": [
@@ -984,7 +1007,10 @@
 								"storeSettings": {
 									"type": "AzureBlobFSReadSettings",
 									"recursive": true,
-									"wildcardFolderPath": "@concat('readings/load_date=', variables('v_date'))",
+									"wildcardFolderPath": {
+										"value": "@concat('readings/load_date=', variables('v_date'))",
+										"type": "Expression"
+									},
 									"wildcardFileName": "*.json",
 									"enablePartitionDiscovery": false
 								},
@@ -1297,7 +1323,10 @@
 							"storedProcedureName": "[[dw].[usp_merge_fact_reading]",
 							"storedProcedureParameters": {
 								"run_id": {
-									"value": "@pipeline().RunId",
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
 									"type": "String"
 								}
 							}
@@ -1337,7 +1366,10 @@
 									"type": "String"
 								},
 								"run_id": {
-									"value": "@pipeline().RunId",
+									"value": {
+										"value": "@pipeline().RunId",
+										"type": "Expression"
+									},
 									"type": "String"
 								},
 								"step": {
@@ -1364,7 +1396,10 @@
 						],
 						"userProperties": [],
 						"typeProperties": {
-							"message": "@concat('merge_fact_reading failed: ', activity('merge_fact_reading').error.message)",
+							"message": {
+								"value": "@concat('merge_fact_reading failed: ', activity('merge_fact_reading').error.message)",
+								"type": "Expression"
+							},
 							"errorCode": "LOAD_FAILED"
 						}
 					},
@@ -1438,7 +1473,7 @@
 			"properties": {
 				"description": "Triggers full station copy once per day ",
 				"annotations": [],
-				"runtimeState": "Started",
+				"runtimeState": "Stopped",
 				"pipelines": [
 					{
 						"pipelineReference": {
@@ -1478,7 +1513,7 @@
 			"properties": {
 				"description": "Hourly run trigger to copy latest readings from API into data lake",
 				"annotations": [],
-				"runtimeState": "Started",
+				"runtimeState": "Stopped",
 				"pipelines": [
 					{
 						"pipelineReference": {
