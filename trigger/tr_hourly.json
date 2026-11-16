@@ -3,7 +3,7 @@
 	"properties": {
 		"description": "Hourly run trigger to copy latest readings from API into data lake",
 		"annotations": [],
-		"runtimeState": "Started",
+		"runtimeState": "Stopped",
 		"pipelines": [
 			{
 				"pipelineReference": {
